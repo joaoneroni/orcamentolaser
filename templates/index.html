@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href=" {{ url_for('static', filename='gueraço.ico')}}">
+    <link rel="stylesheet" href=" {{ url_for('static', filename='index.css')}}">
+    <title>Orçamento Corte Laser</title>
+</head>
+
+<body>
+    <div class="core_container">
+        <div class="container">
+            <img src=" {{ url_for('static', filename='gueraço.jpg')}}" class="container">
+        </div>
+       <h1 style="position: relative; align-items: center; color:aliceblue;margin-left: 40px;">Faça seu Orçamento</h1>
+        <div>
+            <form id="uploadForm">
+                <div id="arquivos">
+                    <div class="arquivo">
+                        <label for="file">Selecione o arquivo DXF:</label>
+                        <input type="file" name="file" accept=".dxf" required>
+                        <br><br>
+                        <label for="material">Material:</label>
+                        <select name="material" class="material" required>
+                            <option value="AÇO 1020">AÇO 1020</option>
+                            <option value="AÇO 1045">AÇO 1045</option>
+                            <option value="ALUMINIO">ALUMINIO</option>
+                            <option value="INOX 304">INOX 304</option>
+                            <option value="INOX 430">INOX 430</option>
+                        </select>
+                        <br><br>
+                        <label for="espessura_chapa">Espessura da Chapa:</label>
+                        <select name="espessura_chapa" class="espessura_chapa" required>
+                            <!-- As opções serão preenchidas dinamicamente com base no material selecionado -->
+                        </select>
+                        <br><br>
+                        <label for="quantidade">Quantidade:</label>
+                        <div class="quantidade">
+                            <button type="button" onclick="diminuirQuantidade(this)">-</button>
+                            <input type="number" name="quantidade" class="quantidade" value="1" min="1" required>
+                            <button type="button" onclick="aumentarQuantidade(this)">+</button>
+                        </div>
+                        <div class="botoes-inferiores">
+                            <button type="button" class="adicionar" onclick="adicionarArquivo()">Adicionar Peça</button>
+                            <button type="button" class="excluir" onclick="removerUltimaPeca()">Excluir</button>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <button type="submit">Calcular</button>
+            </form>
+        </div>
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        // Mapeamento de materiais para espessuras de chapa
+        const materiais = {
+            "AÇO 1020": ["CHAPA 20", "CHAPA 18", "CHAPA 16", "CHAPA 14", "CHAPA 1/8\"", "CHAPA 3/16\"", "CHAPA 1/4\"", "CHAPA 5/16\"", "CHAPA 3/8\"", "CHAPA 1/2\"", "CHAPA 5/8\""],
+            "AÇO 1045": ["CHAPA 1/8\"", "CHAPA 3/16\"", "CHAPA 1/4\"", "CHAPA 5/16\"", "CHAPA 3/8\"", "CHAPA 1/2\"", "CHAPA 5/8\""],
+            "ALUMINIO": ["CHAPA 20", "CHAPA 18", "CHAPA 16", "CHAPA 14", "CHAPA 1/8\"", "CHAPA 3/16\"", "CHAPA 1/4\""],
+            "INOX 304": ["CHAPA 20", "CHAPA 18", "CHAPA 16", "CHAPA 14", "CHAPA 1/8\"", "CHAPA 3/16\"", "CHAPA 1/4\""],
+            "INOX 430": ["CHAPA 20", "CHAPA 18", "CHAPA 16", "CHAPA 14"],
+        };
+
+        // Função para atualizar as opções de espessura de chapa
+        function atualizarEspessuras(selectMaterial, selectEspessura) {
+            const material = selectMaterial.value;
+            selectEspessura.innerHTML = ''; // Limpa as opções atuais
+
+            materiais[material].forEach(espessura => {
+                const option = document.createElement('option');
+                option.value = espessura;
+                option.textContent = espessura;
+                selectEspessura.appendChild(option);
+            });
+        }
+
+        // Função para adicionar um novo campo de arquivo
+        function adicionarArquivo() {
+            const arquivosDiv = document.getElementById('arquivos');
+            const novoArquivoDiv = document.createElement('div');
+            novoArquivoDiv.className = 'arquivo';
+            novoArquivoDiv.innerHTML = `
+                <label for="file">Selecione o arquivo DXF:</label>
+                <input type="file" name="file" accept=".dxf" required>
+                <br><br>
+                <label for="material">Material:</label>
+                <select name="material" class="material" required>
+                    <option value="AÇO 1020">AÇO 1020</option>
+                    <option value="AÇO 1045">AÇO 1045</option>
+                    <option value="ALUMINIO">ALUMINIO</option>
+                    <option value="INOX 304">INOX 304</option>
+                    <option value="INOX 430">INOX 430</option>
+                </select>
+                <br><br>
+                <label for="espessura_chapa">Espessura da Chapa:</label>
+                <select name="espessura_chapa" class="espessura_chapa" required>
+                    <!-- As opções serão preenchidas dinamicamente com base no material selecionado -->
+                </select>
+                <br><br>
+                <label for="quantidade">Quantidade:</label>
+                <div class="quantidade">
+                    <button type="button" onclick="diminuirQuantidade(this)">-</button>
+                    <input type="number" name="quantidade" class="quantidade" value="1" min="1" required>
+                    <button type="button" onclick="aumentarQuantidade(this)">+</button>
+                </div>
+                <div class="botoes-inferiores">
+                    <button type="button" class="adicionar" onclick="adicionarArquivo()">Adicionar Peça</button>
+                    <button type="button" class="excluir" onclick="removerUltimaPeca()">Excluir</button>
+                </div>`;
+            arquivosDiv.appendChild(novoArquivoDiv);
+
+            // Atualiza as espessuras para o novo campo de material
+            const selectMaterial = novoArquivoDiv.querySelector('.material');
+            const selectEspessura = novoArquivoDiv.querySelector('.espessura_chapa');
+            selectMaterial.addEventListener('change', () => atualizarEspessuras(selectMaterial, selectEspessura));
+            atualizarEspessuras(selectMaterial, selectEspessura); // Inicializa as opções
+        }
+
+        // Função para remover a última peça adicionada
+        function removerUltimaPeca() {
+            const arquivosDiv = document.getElementById('arquivos');
+            const ultimaPeca = arquivosDiv.lastElementChild;
+            if (ultimaPeca) {
+                arquivosDiv.removeChild(ultimaPeca);
+            }
+        }
+
+        // Funções para aumentar e diminuir a quantidade
+        function aumentarQuantidade(button) {
+            const quantidadeInput = button.parentNode.querySelector('.quantidade');
+            quantidadeInput.value = parseInt(quantidadeInput.value) + 1;
+        }
+
+        function diminuirQuantidade(button) {
+            const quantidadeInput = button.parentNode.querySelector('.quantidade');
+            if (parseInt(quantidadeInput.value) > 1) {
+                quantidadeInput.value = parseInt(quantidadeInput.value) - 1;
+            }
+        }
+
+        // Envia o formulário e exibe o resultado
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const resultadosDiv = document.getElementById('resultados');
+                    resultadosDiv.innerHTML = ''; // Limpa os resultados anteriores
+
+                    data.forEach((resultado, index) => {
+                        if (resultado.error) {
+                            resultadosDiv.innerHTML += `<div class="resultado">Erro: ${resultado.error}</div>`;
+                        } else {
+                            resultadosDiv.innerHTML += `
+                            <div class="resultado">
+                                <h3>Peça ${index + 1}: ${resultado.arquivo}</h3>
+                                <p>Material: ${resultado.material}</p>
+                                <p>Espessura: ${resultado.espessura} mm</p>
+                                <p>Perímetro Total: ${resultado.perimetro.toFixed(2)} mm</p>
+                                <p>Tempo de Corte: ${resultado.tempo_corte.toFixed(2)} segundos</p>
+                                <p>Largura: ${resultado.largura.toFixed(2)} mm</p>
+                                <p>Altura: ${resultado.altura.toFixed(2)} mm</p>
+                                <p>Área Total: ${resultado.area_total.toFixed(2)} mm²</p>
+                                <p>Peso: ${resultado.peso.toFixed(2)} gramas</p>
+                                <p>Preço Unitário: R$ ${resultado.preco_unitario.toFixed(2)}</p>
+                                <p>Preço Total: R$ ${resultado.preco_total.toFixed(2)}</p>
+                            </div>
+                        `;
+                        }
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('resultados').innerText = 'Erro: ' + error;
+                });
+        });
+
+        // Inicializa as espessuras para o primeiro campo de material
+        document.querySelectorAll('.material').forEach(selectMaterial => {
+            const selectEspessura = selectMaterial.parentNode.querySelector('.espessura_chapa');
+            selectMaterial.addEventListener('change', () => atualizarEspessuras(selectMaterial, selectEspessura));
+            atualizarEspessuras(selectMaterial, selectEspessura); // Inicializa as opções
+        });
+    </script>
+</body>
+
+</html>
